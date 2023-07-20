@@ -225,7 +225,7 @@ function* chunks<T>(arr: T[], n: number): Generator<T[], void> {
   }
 }
 
-export async function apiWrapper(call: Promise<any>, retries = 5) {
+export async function apiWrapper<T>(call: Promise<T>, retries = 5) {
   try {
     const data = await call;
     return data;

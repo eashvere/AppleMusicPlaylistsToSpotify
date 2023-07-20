@@ -16,8 +16,7 @@
         spotifyAuthLink = await redirectToAuthCodeFlow(clientId, redirectUri);
       } else {
         await getAccessToken(clientId, code, redirectUri);
-        window.location.href =
-          window.location.origin + window.location.pathname;
+        window.location.href = window.location.origin + window.location.pathname;
       }
     }
   }

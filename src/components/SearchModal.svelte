@@ -1,3 +1,4 @@
+<!-- https://geon.github.io/programming/2016/02/24/flexbox-full-page-web-app-layout -->
 <script lang="ts">
   import {
     searchSong,
@@ -5,20 +6,14 @@
   } from "../utils/storable";
   import SpotifyWebApi from "spotify-web-api-js";
   // @ts-ignore
-  import AutoComplete from "simple-svelte-autocomplete";
+  import AutoComplete from "./AutoComplete.svelte";
   import Modal from "./Modal.svelte";
   import { createEventDispatcher } from "svelte";
-  import { apiWrapper } from "../utils/transfer";
 
   const dispatch = createEventDispatcher();
 
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(spotify_access_token.get());
-
-  const querySong = async (song: string) => {
-    const data = await apiWrapper(spotifyApi.searchTracks(song, { limit: 10 }));
-    return data.tracks.items;
-  };
 
   const sendBackToTransfer = () => {
     dialog.close();
@@ -33,8 +28,8 @@
 </script>
 
 <Modal showModal={show} bind:dialog>
-  <div class="flex-1 bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 flex flex-col">
-    <div class="sm:flex sm:items-start">
+  <div class="flex-1 bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 flex flex-col overflow-hidden">
+    <div class="sm:flex sm:items-start overflow-scroll">
       <div
         class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10"
       >
@@ -49,7 +44,7 @@
           /></svg
         >
       </div>
-      <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+      <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left overflow-scroll">
         <h3
           class="text-base font-semibold leading-6 text-gray-900"
           id="modal-title"
@@ -75,44 +70,24 @@
             </div>
           </div>
         {/if}
-        <div class="mt-2">
-          <AutoComplete
-            class="overflow-hidden w-auto border-green-300 border-solid border-2"
-            searchFunction={querySong}
-            delay="200"
-            localFiltering={false}
-            labelFieldName="name"
-            valueFieldName="id"
-            bind:selectedItem={selectedTrack}
-          >
-            <div slot="item" let:item>
-              <div class="flex items-center">
-                <div class="flex items-center h-12">
-                  <img
-                    class="h-12 w-12 flex-none bg-gray-50"
-                    src={item.album.images[0].url}
-                    alt=""
-                  />
-                  <div class="flex flex-col px-4">
-                    <p class="text-sm font-semibold uppercase">
-                      {item.name} by {item.artists[0].name}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </AutoComplete>
+        <div class="flex flex-col mt-2 overflow-scroll">
+          <AutoComplete 
+            delay={200}
+            bind:selectedTrack
+          />
         </div>
       </div>
     </div>
   </div>
-  <div class="bg-gray-50 px-4 py-3 md:flex md:flex-row-reverse md:px-6">
+  <div class="bg-gray-50 px-4 py-3 flex flex-col md:flex-row-reverse md:px-6">
     <button
       type="button"
       on:click={sendBackToTransfer}
-      class="inline-flex w-full justify-center rounded-md mb-3 md:mb-0 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800 md:ml-3 md:w-auto"
+      class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800 md:ml-3 md:w-auto"
       >Submit</button
     >
+    <div class="h-3">
+    </div>
     <button
       type="button"
       on:click={() => {

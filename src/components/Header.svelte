@@ -1,4 +1,4 @@
-<header class="flex-1 flex flex-col align-baseline p-6 md:relative">
+<header class="flex-1 flex flex-col align-baseline px-4 pt-4 md:relative">
   <div class="flex self-center md:self-start md:absolute">
     <span class="sr-only">Apple Music to Spotify</span>
     <svg

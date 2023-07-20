@@ -30,7 +30,7 @@
         >
           Success! 🎉🎉🎉🎉
         </h3>
-        <div class="mt-2">Successfully transfered your playlists!</div>
+        <div class="mt-2">Successfully transfered your playlists! <b>The songs in red have been ignored.</b></div>
       </div>
     </div>
   </div>

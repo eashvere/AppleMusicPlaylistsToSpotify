@@ -126,7 +126,7 @@
       <Header />
     </div>
     <div
-      class="flex-1 flex flex-col md:flex-row px-6 pt-6 self-center md:self-start justify-center md:justify-start md:overflow-hidden"
+      class="flex-1 flex flex-col md:flex-row px-6 pt-4 self-center md:self-start justify-center md:justify-start md:overflow-hidden"
     >
       <Playlists />
       <Transfer />

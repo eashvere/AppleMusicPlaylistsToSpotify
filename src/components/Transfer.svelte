@@ -1,3 +1,4 @@
+<!-- https://geon.github.io/programming/2016/02/24/flexbox-full-page-web-app-layout -->
 <script lang="ts">
   import {
   playlistReviews,
@@ -13,6 +14,7 @@
   let promise = startTransfer();
   async function startTransfer() {
     const sel = playlistSelected.get();
+    // don't fetch playlists that have already been fetched
     const playlistIdsAlreadyInPR = playlistReviews.get().map(pr => pr.review.playlist.id)
     const filteredPR = sel.filter(p => !playlistIdsAlreadyInPR.includes(p.id));
     const reviews = await transfer(filteredPR);
@@ -22,19 +24,26 @@
         selected: true,
       };
     });
-    playlistReviews.set([...playlistReviews.get(), ...pr]);
+    let temp = [...playlistReviews.get(), ...pr];
+    // remove playlists that are unselected
+    const selIds = sel.map((s) => s.id);
+    temp = temp.filter(p => selIds.includes(p.review.playlist.id));
+    playlistReviews.set(temp);
   }
+
   function updateTransfer(event: any) {
-    for (const prs of playlistReviews.get()) {
+    const temp = playlistReviews.get();
+    for (const prs of temp) {
       for (const track of prs.review.tracks) {
         if (track.appleSong.id === $searchSong?.appleSong.id) {
           track.spotifySong = event.detail;
         }
       }
     }
-    playlistReviews.set(playlistReviews.get());
+    playlistReviews.set([...temp]);
     searchSong.set(undefined);
   }
+
   async function transferAllPlaylists() {
     let promises = [];
     for (const prs of playlistReviews.get()) {
@@ -51,7 +60,7 @@
 />
 
 <div class="flex flex-col overflow-hidden p-4 justify-center">
-  {#if $playlistSelected.length > 0}
+  {#if $playlistReviews.length > 0 || $playlistSelected.length > 0}
     <button
       class="md:self-start text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
       on:click={() => (promise = startTransfer())}
@@ -64,7 +73,7 @@
       on:click={transferAllPlaylists}>Transfer All Playlists</button
     >
   {/if}
-  {#if $playlistSelected.length > 0}
+  {#if $playlistReviews.length > 0 || $playlistSelected.length > 0}
     <div class="flex md:self-start items-center">
       <input
         id="link-checkbox"
