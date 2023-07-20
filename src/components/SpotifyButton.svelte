@@ -4,8 +4,8 @@
   import { spotify_expired } from "../utils/storable";
 
   const clientId = "d71fd8cb1092472d90229483eefdfc52";
-  const redirectUri = "http://localhost:3000/";
-  //const redirectUri = "https://applemusictospotify.vercel.app";
+  //const redirectUri = "http://localhost:3000/";
+  const redirectUri = "https://applemusictospotify.vercel.app";
   let spotifyAuthLink: string;
 
   async function auth() {

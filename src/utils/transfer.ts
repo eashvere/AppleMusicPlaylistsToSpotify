@@ -1,8 +1,10 @@
 import SpotifyWebApi from "spotify-web-api-js";
 import {
   errorState,
+  progress,
   spotify_access_token,
   spotify_expired,
+  totalProgress,
   transferSuccess,
 } from "./storable";
 
@@ -198,6 +200,18 @@ function timeout(ms:number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function allProgress<T>(proms: Promise<T>[], progress_cb: (e: number) => void) {
+  let d = 0;
+  progress_cb(0);
+  for (const p of proms) {
+    p.then(()=> {    
+      d ++;
+      progress_cb( (d * 100) / proms.length );
+    });
+  }
+  return Promise.all(proms);
+}
+
 export async function transfer(playlists: AppleMusicApi.Playlist[]) {
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(spotify_access_token.get());
@@ -205,12 +219,13 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
   for (const playlist of playlists) {
     const tracks = await getSongsfromAppleMusicPlaylist(playlist);
     if (tracks.length > 0) {
+      totalProgress.set(tracks.length);
       const reviewPlaylist: PlaylistReview = {
         playlist: playlist,
         tracks: [],
       };
 
-      const queryTrack = async (track: AppleMusicApi.Song, retries = 5) => {
+      const queryTrack = async (track: AppleMusicApi.Song, retries = 5): Promise<SongReview> => {
         const query = getSearchQueryforSong(track);
         const trackReview: SongReview = {
           appleSong: track,
@@ -228,6 +243,7 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
           return trackReview;
         } catch (err: any) {
           if (err.status == 429) {
+            console.error(err);
             if (retries > 0) {
               await timeout(15000);
               return queryTrack(track, retries - 1);
@@ -236,12 +252,14 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
           console.error(err);
           errorState.set(err);
           spotify_expired.set(true);
-          throw new Error(err);
+          return trackReview;
         }
       };
 
       const queries = tracks.map((track) => queryTrack(track));
-      reviewPlaylist.tracks = await Promise.all(queries);
+      //reviewPlaylist.tracks = await Promise.all(queries);
+      reviewPlaylist.tracks = await allProgress(queries, (e) => {progress.set(e)});
+      progress.set(0);
       reviewAllPlaylists.push(reviewPlaylist);
     }
   }

@@ -5,6 +5,8 @@
     playlistSelected,
     searchSong,
     transferSuccess,
+    progress,
+    totalProgress
   } from "../utils/storable";
   import { transfer, transferToSpotify } from "../utils/transfer";
   import SearchModal from "./SearchModal.svelte";
@@ -88,7 +90,10 @@
     </div>
   {/if}
   {#await promise}
-    <div role="status" class="md:self-center">
+    <label for="transfer-progress" id="sr-only">Progress:</label>
+    <progress id="transfer-progress" value={$progress} max={$totalProgress} class="[&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg   [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-green-600 [&::-moz-progress-bar]:bg-green-600"></progress>
+
+    <!-- <div role="status" class="md:self-center">
       <svg
         aria-hidden="true"
         class="w-24 h-24 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-green-600"
@@ -106,7 +111,7 @@
         />
       </svg>
       <span class="sr-only">Loading...</span>
-    </div>
+    </div> -->
   {/await}
   <ul class="flex-1 flex flex-col divide-y divide-gray-200 overflow-scroll">
     {#each $playlistReviews as review}

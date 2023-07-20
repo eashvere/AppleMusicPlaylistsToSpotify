@@ -77,6 +77,15 @@ export const playlistReviews = persistentAtom<PRS[]>(
   }
 );
 
+export const rollingRequests = persistentAtom<number>(
+  "rollingRequests",
+  0,
+  {
+    encode: JSON.stringify,
+    decode: JSON.parse,
+  }
+);
+
 type ResponseError = {
   status: number;
   text: string;
@@ -85,3 +94,5 @@ type ResponseError = {
 export const errorState = atom<ResponseError>({ status: 200, text: "" });
 export const searchSong = atom<SongReview | undefined>(undefined);
 export const transferSuccess = atom<boolean>(false);
+export const progress = atom<number>(0);
+export const totalProgress = atom<number>(1);
