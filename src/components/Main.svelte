@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import {
     apple_authenticated,
     spotify_access_token,
@@ -16,19 +15,33 @@
   let musickiterror = false;
   let musickitloaded = false;
 
-  onMount(() => {
-    if (!MusicKit) console.log("Not Loaded Yet!");
-    else {
-      console.log("Music Kit loaded in svelte");
-      try {
-        const music = MusicKit.getInstance();
-        apple_authenticated.set(music.isAuthorized);
-      } catch (err) {
-        console.log(err);
-      }
-      musickitloaded = true;
+  const developerToken = import.meta.env.PUBLIC_APPLEMUSICDEVTOKEN;
+
+  const initMusicKit = async () => {
+    let setup = new Promise((resolve) => {
+        document.addEventListener('musickitloaded', () => {
+            const musicKitInstance = window.MusicKit.configure({
+                developerToken,
+                app: {
+                    name: 'MusicKit Web App',
+                    build: '1.0.0',
+                },
+            });
+            resolve(musicKitInstance);
+        });
+    });
+
+    await setup;
+    musickitloaded = true;
+
+    try {
+        console.log('MusicKit Loaded');
+    } catch (error) {
+        musickiterror = true;
+        apple_authenticated.set(false);
+        console.error(error);
     }
-  });
+  }
 
   async function authorizeApple() {
     const music = MusicKit.getInstance();
@@ -43,7 +56,13 @@
       }
     }
   }
+
+  initMusicKit();
 </script>
+
+<svelte:head>
+	<script src="https://js-cdn.music.apple.com/musickit/v3/musickit.js" async></script>
+</svelte:head>
 
 <div class="flex flex-col relative h-screen">
   {#if musickiterror}

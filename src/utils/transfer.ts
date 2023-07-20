@@ -194,6 +194,10 @@ async function findSingles(
   }
 }
 
+function timeout(ms:number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function transfer(playlists: AppleMusicApi.Playlist[]) {
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(spotify_access_token.get());
@@ -225,9 +229,8 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
         } catch (err: any) {
           if (err.status == 429) {
             if (retries > 0) {
-              setTimeout(() => {
-                return queryTrack(track, retries - 1);
-              }, 30000);
+              await timeout(15000);
+              return queryTrack(track, retries - 1);
             }
           }
           console.error(err);
@@ -258,9 +261,8 @@ export async function apiWrapper<T>(call: Promise<T>, retries = 5) {
   } catch (err: any) {
     if (err.status == 429) {
       if (retries > 0) {
-        setTimeout(() => {
-          return apiWrapper(call, retries - 1);
-        }, 30000);
+        await timeout(15000);
+        return apiWrapper(call, retries - 1);
       }
     }
     console.error(err);
