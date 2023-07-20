@@ -20,9 +20,9 @@ export const getAllPages = async <Response extends Pagination>(
   let currentResponse = paginatedResponse;
 
   while (currentResponse.next) {
-    currentResponse = (await apiWrapper(spotifyApi.getGeneric(
-      currentResponse.next
-    ))) as Response;
+    currentResponse = (await apiWrapper(
+      spotifyApi.getGeneric(currentResponse.next)
+    )) as Response;
     paginatedResponse.items = paginatedResponse.items.concat(
       currentResponse.items
     );
@@ -153,7 +153,9 @@ async function findTrackbyAlbum(
   const parsedAlbum = removeFeat(track.attributes?.albumName);
   const query = `artist:${parsedArtist} album:${parsedAlbum}`;
   try {
-    const albumData = await apiWrapper(spotifyApi.searchAlbums(query, { limit: 5 }));
+    const albumData = await apiWrapper(
+      spotifyApi.searchAlbums(query, { limit: 5 })
+    );
     const album = albumData.albums.items[0];
     if (album === undefined) return undefined;
     const albumTracks = await getAllPages<SpotifyApi.AlbumTracksResponse>(
@@ -161,6 +163,27 @@ async function findTrackbyAlbum(
       spotifyApi
     );
     return mostSimilarSong(track, albumTracks.items, album);
+  } catch (err: any) {
+    if (err.status === 401) {
+      errorState.set(err);
+      spotify_expired.set(true);
+    }
+    console.error(err.status);
+    return undefined;
+  }
+}
+
+// Clearly not in your area!
+async function findSingles(
+  spotifyApi: SpotifyWebApi.SpotifyWebApiJs,
+  track: AppleMusicApi.Song
+) {
+  const parsedArtist = removeExtraArtists(track.attributes?.artistName);
+  const parsedTrack = removeFeat(track.attributes?.name);
+  const query = `artist:${parsedArtist} track:${parsedTrack}`;
+  try {
+    const data = await spotifyApi.searchTracks(query, { limit: 5 });
+    return data.tracks.items[0];
   } catch (err: any) {
     if (err.status === 401) {
       errorState.set(err);
@@ -192,7 +215,10 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
         try {
           const data = await spotifyApi.searchTracks(query, { limit: 5 });
           trackReview.spotifySong = data.tracks.items[0];
-          if (trackReview.spotifySong === undefined) {
+          const album = (trackReview.appleSong.attributes?.albumName || '')
+          if(album.includes("- Single") || album.includes("- EP") || album.includes("(Apple Music Edition)") || album.includes(".feat")) {
+            trackReview.spotifySong = await findSingles(spotifyApi, track);
+          } else if (trackReview.spotifySong === undefined) {
             trackReview.spotifySong = await findTrackbyAlbum(spotifyApi, track);
           }
           return trackReview;
