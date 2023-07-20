@@ -1,3 +1,14 @@
 {
-  "extends": "astro/tsconfigs/strict"
+  "extends": "astro/tsconfigs/strictest",
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": [
+      "apple-music-api"
+    ],
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  }
 }
