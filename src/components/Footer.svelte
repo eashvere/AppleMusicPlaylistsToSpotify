@@ -5,7 +5,7 @@
     <span class="text-sm text-gray-500 sm:text-center"
       >© 2023 <a href="https://github.com/eashvere" class="hover:underline"
         >Eashver Elango</a
-      >. All Rights Reserved.
+      >. All Rights Reserved. Built on Astro with Svelte 🎉
     </span>
     <ul
       class="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 sm:mt-0"
