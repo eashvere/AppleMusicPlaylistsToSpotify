@@ -68,14 +68,18 @@ export const playlistSelected = persistentAtom<Array<AppleMusicApi.Playlist>>(
   }
 );
 
-export const playlistReviews = persistentAtom<PRS[]>(
-  "playlistReviews",
-  [],
-  {
-    encode: JSON.stringify,
-    decode: JSON.parse,
-  }
-);
+
+
+// export const playlistReviews = persistentAtom<PRS[]>(
+//   "playlistReviews",
+//   [],
+//   {
+//     encode: JSON.stringify,
+//     decode: JSON.parse,
+//   }
+// );
+
+export const playlistReviews = atom<PRS[]>([]);
 
 export const rollingRequests = persistentAtom<number>(
   "rollingRequests",
@@ -96,3 +100,6 @@ export const searchSong = atom<SongReview | undefined>(undefined);
 export const transferSuccess = atom<boolean>(false);
 export const progress = atom<number>(0);
 export const totalProgress = atom<number>(1);
+export const eta = atom<number>(0);
+export const readingApplePlaylist = atom<boolean>(false);
+export const currentPlaylistTransfered = atom<AppleMusicApi.Playlist | undefined>(undefined);

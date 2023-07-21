@@ -15,6 +15,7 @@
     "@nanostores/persistent": "^0.9.1",
     "@types/apple-music-api": "^0.4.1",
     "astro": "^2.6.2",
+    "bottleneck": "^2.19.5",
     "nanostores": "^0.9.3",
     "spotify-web-api-js": "^1.5.2",
     "svelte": "^3.55.0",

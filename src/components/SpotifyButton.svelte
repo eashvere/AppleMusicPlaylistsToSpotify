@@ -5,7 +5,8 @@
 
   const clientId = "d71fd8cb1092472d90229483eefdfc52";
   //const redirectUri = "http://localhost:3000/";
-  const redirectUri = "https://applemusictospotify.vercel.app";
+  //const redirectUri = "https://applemusictospotify.vercel.app";
+  const redirectUri = import.meta.env.PUBLIC_REDIRECTURI;
   let spotifyAuthLink: string;
 
   async function auth() {

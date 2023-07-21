@@ -1046,6 +1046,11 @@
     "inherits" "^2.0.4"
     "readable-stream" "^3.4.0"
 
+"bottleneck@^2.19.5":
+  "integrity" "sha512-VHiNCbI1lKdl44tGrhNfU3lup0Tj/ZBMJB5/2ZbNXRCPuRCO7ed2mgcK4r17y+KB2EfuYuRaVlwNbAeaWGSpbw=="
+  "resolved" "https://registry.npmjs.org/bottleneck/-/bottleneck-2.19.5.tgz"
+  "version" "2.19.5"
+
 "boxen@^6.2.1":
   "integrity" "sha512-H4PEsJXfFI/Pt8sjDWbHlQPx4zL/bvSQjcilJmaulGt5mLDorHOHpmdXAJcBcmru7PhYSp/cDMWRko4ZUMFkSw=="
   "resolved" "https://registry.npmjs.org/boxen/-/boxen-6.2.1.tgz"

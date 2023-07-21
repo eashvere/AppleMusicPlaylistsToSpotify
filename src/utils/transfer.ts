@@ -1,12 +1,16 @@
 import SpotifyWebApi from "spotify-web-api-js";
 import {
+  currentPlaylistTransfered,
   errorState,
+  eta,
   progress,
+  readingApplePlaylist,
   spotify_access_token,
   spotify_expired,
   totalProgress,
   transferSuccess,
 } from "./storable";
+import Bottleneck from "bottleneck";
 
 interface Pagination {
   next?: string;
@@ -39,6 +43,7 @@ async function getSongsfromAppleMusicPlaylist(
   const music = MusicKit.getInstance();
   const tracks: Array<AppleMusicApi.Song> = [];
   let hasNextPage = true;
+  readingApplePlaylist.set(true);
   while (hasNextPage) {
     const queryParameters = {
       limit: 25,
@@ -60,6 +65,7 @@ async function getSongsfromAppleMusicPlaylist(
     // When this is `false`, then the loop stops
     hasNextPage = !!next;
   }
+  readingApplePlaylist.set(false);
   return tracks;
 }
 
@@ -200,23 +206,48 @@ function timeout(ms:number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function allProgress<T>(proms: Promise<T>[], progress_cb: (e: number) => void) {
-  let d = 0;
-  progress_cb(0);
-  for (const p of proms) {
-    p.then(()=> {    
-      d ++;
-      progress_cb( (d * 100) / proms.length );
-    });
+const queryTrack = async (track: AppleMusicApi.Song, spotifyApi: SpotifyWebApi.SpotifyWebApiJs, retries = 5): Promise<SongReview> => {
+  const query = getSearchQueryforSong(track);
+  const trackReview: SongReview = {
+    appleSong: track,
+    spotifySong: undefined,
+  };
+  try {
+    const data = await spotifyApi.searchTracks(query, { limit: 5 });
+    trackReview.spotifySong = data.tracks.items[0];
+    const album = (trackReview.appleSong.attributes?.albumName || '')
+    if(album.includes("- Single") || album.includes("- EP") || album.includes("(Apple Music Edition)") || album.includes(".feat")) {
+      trackReview.spotifySong = await findSingles(spotifyApi, track);
+    } else if (trackReview.spotifySong === undefined) {
+      trackReview.spotifySong = await findTrackbyAlbum(spotifyApi, track);
+    }
+    return trackReview;
+  } catch (err: any) {
+    if (err.status == 429) {
+      console.error(err);
+      if (retries > 0) {
+        await timeout(15000);
+        return queryTrack(track, spotifyApi, retries - 1);
+      }
+    }
+    console.error(err);
+    errorState.set(err);
+    spotify_expired.set(true);
+    return trackReview;
   }
-  return Promise.all(proms);
-}
+};
+
+const minTime = 333;
+const limiter = new Bottleneck({
+  minTime: minTime
+});
 
 export async function transfer(playlists: AppleMusicApi.Playlist[]) {
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(spotify_access_token.get());
   const reviewAllPlaylists: Array<PlaylistReview> = [];
   for (const playlist of playlists) {
+    currentPlaylistTransfered.set(playlist);
     const tracks = await getSongsfromAppleMusicPlaylist(playlist);
     if (tracks.length > 0) {
       totalProgress.set(tracks.length);
@@ -224,45 +255,30 @@ export async function transfer(playlists: AppleMusicApi.Playlist[]) {
         playlist: playlist,
         tracks: [],
       };
+      
+      progress.set(0);
 
-      const queryTrack = async (track: AppleMusicApi.Song, retries = 5): Promise<SongReview> => {
-        const query = getSearchQueryforSong(track);
-        const trackReview: SongReview = {
-          appleSong: track,
-          spotifySong: undefined,
-        };
-        try {
-          const data = await spotifyApi.searchTracks(query, { limit: 5 });
-          trackReview.spotifySong = data.tracks.items[0];
-          const album = (trackReview.appleSong.attributes?.albumName || '')
-          if(album.includes("- Single") || album.includes("- EP") || album.includes("(Apple Music Edition)") || album.includes(".feat")) {
-            trackReview.spotifySong = await findSingles(spotifyApi, track);
-          } else if (trackReview.spotifySong === undefined) {
-            trackReview.spotifySong = await findTrackbyAlbum(spotifyApi, track);
-          }
-          return trackReview;
-        } catch (err: any) {
-          if (err.status == 429) {
-            console.error(err);
-            if (retries > 0) {
-              await timeout(15000);
-              return queryTrack(track, retries - 1);
-            }
-          }
-          console.error(err);
-          errorState.set(err);
-          spotify_expired.set(true);
-          return trackReview;
-        }
-      };
+      eta.set(tracks.length * minTime);
+      const scheduleSongQuery = async (track: AppleMusicApi.Song) => {
+        return limiter.schedule(async () => {
+          return queryTrack(track, spotifyApi).then((val) => {
+            progress.set(progress.get() + 1);
+            eta.set(eta.get() - minTime);
+            return val;
+          })
+        })
+      }
 
-      const queries = tracks.map((track) => queryTrack(track));
-      //reviewPlaylist.tracks = await Promise.all(queries);
-      reviewPlaylist.tracks = await allProgress(queries, (e) => {progress.set(e)});
+      const queries = tracks.map((track) => scheduleSongQuery(track));
+      reviewPlaylist.tracks = await Promise.all(queries);
+
+      eta.set(0);
+
       progress.set(0);
       reviewAllPlaylists.push(reviewPlaylist);
     }
   }
+  currentPlaylistTransfered.set(undefined);
   return reviewAllPlaylists;
 }
 
@@ -290,6 +306,10 @@ export async function apiWrapper<T>(call: Promise<T>, retries = 5) {
   }
 }
 
+const playlistLimiter = new Bottleneck({
+  minTime: minTime
+});
+
 export async function transferToSpotify(pr: PlaylistReview) {
   const spotifyApi = new SpotifyWebApi();
   spotifyApi.setAccessToken(spotify_access_token.get());
@@ -316,9 +336,10 @@ export async function transferToSpotify(pr: PlaylistReview) {
   for (const tracks of trackChunks) {
     const filteredTracks = tracks.filter((track) => track !== "");
     promises.push(
-      apiWrapper(spotifyApi.addTracksToPlaylist(playlistId, filteredTracks))
+      playlistLimiter.schedule(() => apiWrapper(spotifyApi.addTracksToPlaylist(playlistId, filteredTracks)))
     );
   }
+
   await Promise.all(promises);
   transferSuccess.set(true);
 }

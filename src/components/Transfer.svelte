@@ -6,7 +6,10 @@
     searchSong,
     transferSuccess,
     progress,
-    totalProgress
+    totalProgress,
+    eta,
+    readingApplePlaylist,
+    currentPlaylistTransfered,
   } from "../utils/storable";
   import { transfer, transferToSpotify } from "../utils/transfer";
   import SearchModal from "./SearchModal.svelte";
@@ -31,6 +34,10 @@
     const selIds = sel.map((s) => s.id);
     temp = temp.filter(p => selIds.includes(p.review.playlist.id));
     playlistReviews.set(temp);
+  }
+
+  function numberOfUnknown(pr: PlaylistReview) {
+    return pr.tracks.filter((t) => t.spotifySong === undefined).length
   }
 
   function updateTransfer(event: any) {
@@ -61,58 +68,51 @@
   show={$searchSong !== undefined}
 />
 
-<div class="flex flex-col overflow-hidden p-4 justify-center">
-  {#if $playlistReviews.length > 0 || $playlistSelected.length > 0}
-    <button
-      class="md:self-start text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
-      on:click={() => (promise = startTransfer())}
-      >Find Equivalent Songs on Spotify</button
-    >
-  {/if}
-  {#if $playlistReviews.length > 0}
-    <button
-      class="md:self-start text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
-      on:click={transferAllPlaylists}>Transfer All Playlists</button
-    >
-  {/if}
-  {#if $playlistReviews.length > 0 || $playlistSelected.length > 0}
-    <div class="flex md:self-start items-center">
-      <input
-        id="link-checkbox"
-        type="checkbox"
-        bind:checked={showEverything}
-        value=""
-        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-      />
-      <label for="link-checkbox" class="ml-2 text-sm font-medium text-gray-900"
-        >Show All Tracks</label
+<div class="flex-1 flex flex-col overflow-hidden p-4 justify-start">
+  <div class="block">
+    {#if $playlistReviews.length > 0 || $playlistSelected.length > 0}
+      <button
+        class="md:self-start text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
+        on:click={() => (promise = startTransfer())}
+        >Find Equivalent Songs for Selected Playlists on Spotify</button
       >
-    </div>
-  {/if}
+    {/if}
+    {#if $playlistReviews.length > 0}
+      <button
+        class="text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
+        on:click={transferAllPlaylists}>Transfer All Playlists</button
+      >
+      <div class="flex items-center">
+        <input
+          id="link-checkbox"
+          type="checkbox"
+          bind:checked={showEverything}
+          value=""
+          class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        />
+        <label for="link-checkbox" class="ml-2 text-sm font-medium text-gray-900"
+          >Show All Tracks</label
+        >
+      </div>
+    {/if}
+  </div>
   {#await promise}
-    <label for="transfer-progress" id="sr-only">Progress:</label>
-    <progress id="transfer-progress" value={$progress} max={$totalProgress} class="[&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg   [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-green-600 [&::-moz-progress-bar]:bg-green-600"></progress>
-
-    <!-- <div role="status" class="md:self-center">
-      <svg
-        aria-hidden="true"
-        class="w-24 h-24 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-green-600"
-        viewBox="0 0 100 101"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-          fill="currentColor"
-        />
-        <path
-          d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-          fill="currentFill"
-        />
-      </svg>
-      <span class="sr-only">Loading...</span>
-    </div> -->
+    <div class="{$playlistReviews.length < 1 ? "flex-1 justify-center" : '' } flex flex-col">
+      {#if $currentPlaylistTransfered !== undefined}
+        <p class="font-bold text-xl leading-5">Finding songs from Playlist: {$currentPlaylistTransfered?.attributes?.name}</p>
+      {/if}
+      {#if $readingApplePlaylist}
+        <p class="font-semibold text-md text-gray-600">Reading your Apple Playlist. This will take a moment. Please wait...</p>
+      {:else}
+        <label for="transfer-progress" id="sr-only" class="font-semibold text-md text-gray-600">Progress:</label>
+        <progress id="transfer-progress" value={$progress} max={$totalProgress} class="[&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg   [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-green-600 [&::-moz-progress-bar]:bg-green-600"></progress>
+        {#if $eta > 0} 
+        <p class="font-semibold text-md text-gray-600">ETA: {Math.floor( ($eta / 1000) / 60)} min and { Math.floor(($eta / 1000) % 60)} sec </p>
+        {/if}
+      {/if}
+    </div>
   {/await}
+  {#if $playlistReviews.length > 0}
   <ul class="flex-1 flex flex-col divide-y divide-gray-200 overflow-scroll">
     {#each $playlistReviews as review}
       <li class="flex-none overflow-scroll p-2">
@@ -129,11 +129,10 @@
               {review.review.playlist.attributes?.name}
             </p>
             <p class="mt-1 truncate text-xs leading-5 text-gray-9900">
-              {review.review.tracks.length} song{review.review.tracks.length > 1
-                ? "s"
-                : ""}
+              {review.review.tracks.length} song{review.review.tracks.length > 1 ? "s" : ""}
             </p>
           </div>
+          <p>{numberOfUnknown(review.review)} songs have not been found</p>
           <button
             class=" text-white bg-green-700 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-medium rounded-full text-sm px-5 py-2.5 text-center mr-2 mb-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
             on:click={() => transferToSpotify(review.review)}
@@ -206,4 +205,5 @@
       </li>
     {/each}
   </ul>
+  {/if}
 </div>
