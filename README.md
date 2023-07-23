@@ -1,8 +1,18 @@
 # Convert Apple Music Playlists to Spotify
 
-Link: [https://applemusictospotify.vercel.app](Apple Music Playlist to Spotify)
+Link: [Apple Music Playlists to Spotify](https://applemusictospotify.vercel.app)
 
 A free app that does what it says.
+
+If you encounter rate limiting, you can create your Spotify Development App (SDA) at [Spotify Developers](https://developer.spotify.com/).
+
+When creating your SDA, add these two links as the redirect URI
+- https://applemusictospotify.vercel.app
+- https://applemusictospotify.vercel.app/
+
+Replace `clientId` in `src/components/SpotifyButton.svelte` with your SDA's clientId
+
+Run `npm install && npm run dev` in this project's root directory
 
 ## Images
 
