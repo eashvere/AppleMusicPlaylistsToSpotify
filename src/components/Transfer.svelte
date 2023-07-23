@@ -108,6 +108,7 @@
         <progress id="transfer-progress" value={$progress} max={$totalProgress} class="[&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg   [&::-webkit-progress-bar]:bg-slate-300 [&::-webkit-progress-value]:bg-green-600 [&::-moz-progress-bar]:bg-green-600"></progress>
         {#if $eta > 0} 
         <p class="font-semibold text-md text-gray-600">ETA: {Math.floor( ($eta / 1000) / 60)} min and { Math.floor(($eta / 1000) % 60)} sec </p>
+        <p class="font-thin text-sm text-gray-600">Slow Process necessary due to Spotify Api rate limits</p>
         {/if}
       {/if}
     </div>

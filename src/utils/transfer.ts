@@ -202,6 +202,30 @@ async function findSingles(
   }
 }
 
+async function findTrackOnTerms(
+  spotifyApi: SpotifyWebApi.SpotifyWebApiJs,
+  track: AppleMusicApi.Song
+) {
+  if (track.attributes?.name === undefined) return undefined;
+  const query = `${track.attributes.name} ${track.attributes.artistName}`;
+  try {
+    const data = await spotifyApi.searchTracks(query, { limit: 20 });
+    for (const potentialTrack of data.tracks.items) {
+      if ( Math.abs(potentialTrack.duration_ms - (track.attributes?.durationInMillis || 0)) < 5000) {
+        return potentialTrack;
+      }
+    }
+    return undefined;
+  } catch (err: any) {
+    if (err.status === 401) {
+      errorState.set(err);
+      spotify_expired.set(true);
+    }
+    console.error(err.status);
+    return undefined;
+  }
+}
+
 function timeout(ms:number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -218,12 +242,16 @@ const queryTrack = async (track: AppleMusicApi.Song, spotifyApi: SpotifyWebApi.S
     const album = (trackReview.appleSong.attributes?.albumName || '')
     if(album.includes("- Single") || album.includes("- EP") || album.includes("(Apple Music Edition)") || album.includes(".feat")) {
       trackReview.spotifySong = await findSingles(spotifyApi, track);
-    } else if (trackReview.spotifySong === undefined) {
+    } 
+    if (trackReview.spotifySong === undefined) {
       trackReview.spotifySong = await findTrackbyAlbum(spotifyApi, track);
+    }
+    if (trackReview.spotifySong === undefined) {
+      trackReview.spotifySong = await findTrackOnTerms(spotifyApi, track);
     }
     return trackReview;
   } catch (err: any) {
-    if (err.status == 429) {
+    if (err.status == 429 || err.status === 500) {
       console.error(err);
       if (retries > 0) {
         await timeout(15000);
@@ -293,7 +321,7 @@ export async function apiWrapper<T>(call: Promise<T>, retries = 5) {
     const data = await call;
     return data;
   } catch (err: any) {
-    if (err.status == 429) {
+    if (err.status === 429 || err.status === 500) {
       if (retries > 0) {
         await timeout(15000);
         return apiWrapper(call, retries - 1);
